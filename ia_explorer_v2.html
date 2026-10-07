@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>IA Explorer</title>
+<style>
+:root{color-scheme:light dark;
+--bg:light-dark(#eef2ff,#10152b);--surface:light-dark(#fff,#1b2243);--surface2:light-dark(#e8ecff,#252e57);
+--text:light-dark(#17203a,#f5f7ff);--muted:light-dark(#566280,#b8c1dc);
+--accent:light-dark(#5b55e8,#8d88ff);--on-accent:light-dark(#fff,#10152b);
+--ok:light-dark(#0f9d58,#4be08a);--bad:light-dark(#e0475b,#ff8a98);--gold:#ffb703;
+--line:color-mix(in srgb,var(--text) 14%,transparent);--shadow:0 12px 30px #0000001f;--w:var(--accent)}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:"Nunito","Baloo 2","Trebuchet MS","Segoe UI",system-ui,sans-serif;font-size:18px;line-height:1.45;color:var(--text);
+background:radial-gradient(circle at 8% 0,color-mix(in srgb,var(--accent) 20%,transparent),transparent 42%),radial-gradient(circle at 95% 18%,color-mix(in srgb,#ff4d8d 16%,transparent),transparent 36%),radial-gradient(circle at 50% 100%,color-mix(in srgb,#00b894 16%,transparent),transparent 40%),var(--bg);background-attachment:fixed;min-height:100vh}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0}
+:focus-visible{outline:4px solid var(--gold);outline-offset:3px;border-radius:12px}
+main{max-width:1040px;margin:auto;padding:14px 5vw 50px}
+main:focus{outline:none}
+h1,h2,h3{line-height:1.15;margin:.2em 0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 5vw;position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px)}
+.brand{background:none;font-weight:900;font-size:1.3rem;display:flex;align-items:center;gap:8px;padding:4px}
+.brand span.a{color:var(--accent)}
+.logo{font-size:1.6rem}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.pill{padding:8px 14px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-weight:800;font-size:.95rem}
+.tool[aria-pressed=false]{opacity:.55;text-decoration:line-through}
+/* boutons */
+.btn{font-weight:800;border-radius:18px;padding:13px 24px;min-height:52px;background:var(--accent);color:var(--on-accent);box-shadow:0 6px 0 color-mix(in srgb,var(--accent) 55%,#000);transition:transform .12s,box-shadow .12s}
+.btn:hover:not(:disabled){transform:translateY(-2px)}
+.btn:active:not(:disabled){transform:translateY(5px);box-shadow:0 1px 0 color-mix(in srgb,var(--accent) 55%,#000)}
+.btn.alt{background:var(--surface);color:var(--text);box-shadow:0 5px 0 var(--line),inset 0 0 0 2px var(--line)}
+.btn.sm{min-height:44px;padding:8px 16px;font-size:.95rem}
+.btn.big{font-size:1.15rem;padding:15px 32px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btnrow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+.card{background:var(--surface);border-radius:24px;padding:20px;box-shadow:var(--shadow);border:2px solid var(--line)}
+.card+.card,.card+.choices,.choices+.card,.card+.flips{margin-top:16px}
+.instruction,.small{color:var(--muted)}
+.small{font-size:.9rem}
+/* accueil */
+.hero{text-align:center;padding:18px 0 10px}
+.hero-pix{display:flex;justify-content:center}
+.hero h1{font-size:clamp(2.4rem,8vw,4.6rem);letter-spacing:-1px}
+.hero h1 span{background:linear-gradient(90deg,#ff7a59,#ff4d8d,#7c5cff,#2d9cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.subtitle{font-size:1.2rem;color:var(--muted);max-width:640px;margin:6px auto 20px}
+.setup{max-width:520px;margin:0 auto 22px;text-align:left}
+.setup label,.setup legend{font-weight:800;display:block;margin-bottom:6px}
+.setup input{width:100%;padding:12px 16px;border-radius:14px;border:3px solid var(--line);background:var(--bg);font-weight:700}
+.setup fieldset{border:0;padding:0;margin:16px 0 0}
+.seg{display:flex;gap:10px}
+.seg button{flex:1;padding:12px;border-radius:16px;background:var(--surface2);font-weight:800;border:3px solid transparent}
+.seg button[aria-pressed=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 20%,var(--surface))}
+/* carte */
+.maphead{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.rank{background:var(--surface);padding:10px 18px;border-radius:999px;font-weight:900;box-shadow:var(--shadow)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.badge{padding:9px 14px;border-radius:999px;background:var(--surface2);font-weight:800}
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:16px;margin-top:16px}
+.world{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center;border-top:8px solid var(--w);transition:transform .2s}
+.world:hover:not(.locked){transform:translateY(-4px)}
+.world .btn{grid-column:1/-1}
+.tile{width:68px;height:68px;border-radius:22px;background:var(--w);display:grid;place-items:center;font-size:2.2rem;box-shadow:0 5px 0 color-mix(in srgb,var(--w) 60%,#000)}
+.num{font-size:.8rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.world h3{font-size:1.15rem;margin:0}
+.world p{margin:2px 0;color:var(--muted);font-size:.95rem}
+.mstars{color:var(--gold);font-size:1.3rem;letter-spacing:2px}
+.locked{opacity:.6;filter:grayscale(.7)}
+.next{outline:4px dashed var(--w);outline-offset:4px;animation:wob 2.4s ease-in-out infinite}
+/* jeu */
+.game{max-width:860px;margin:6px auto}
+.gbar{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.gtitle{font-size:1.4rem;margin:0}
+.progwrap small{color:var(--muted);font-weight:700}
+.prog{height:14px;border-radius:99px;background:var(--surface2);overflow:hidden;margin:6px 0}
+.prog i{display:block;height:100%;background:var(--w);border-radius:99px;transition:width .45s}
+.coach{display:flex;gap:10px;align-items:flex-end;margin:14px 0 16px}
+.mascot{flex:none;width:100px}
+.bubble{position:relative;flex:1;background:var(--surface);border:3px solid var(--w);border-radius:24px 24px 24px 6px;padding:14px 16px;font-weight:700;box-shadow:var(--shadow);display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.bubble:before{content:"";position:absolute;left:-14px;bottom:10px;border:9px solid transparent;border-right:14px solid var(--w)}
+.mini{background:var(--surface2);border-radius:12px;width:44px;height:44px;flex:none;font-size:1.2rem}
+.prompt{text-align:center}
+.bigemoji{font-size:5rem;line-height:1.1;animation:floaty 3s ease-in-out infinite}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:14px;margin:18px 0}
+.choices.two{grid-template-columns:1fr 1fr}
+.choices.col{grid-template-columns:1fr}
+.choice{position:relative;min-height:84px;padding:14px;border-radius:22px;border:3px solid var(--line);background:var(--surface);font-weight:800;box-shadow:0 6px 0 var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;transition:transform .15s,border-color .15s}
+.choice .em{font-size:2.3rem;line-height:1}
+.choice small{font-weight:700;color:var(--muted);font-size:.85rem}
+.choice.wide{flex-direction:row;justify-content:flex-start;text-align:left;gap:14px}
+.choice:hover:not(:disabled){border-color:var(--w);transform:translateY(-3px)}
+.choice:disabled{cursor:default;color:var(--text)}
+.choice:disabled:not(.right):not(.wrong):not(.sel){opacity:.55}
+.choice.sel{border-color:var(--w);background:color-mix(in srgb,var(--w) 20%,var(--surface))}
+.choice.right{background:color-mix(in srgb,var(--ok) 22%,var(--surface));border-color:var(--ok)}
+.choice.wrong{background:color-mix(in srgb,var(--bad) 18%,var(--surface));border-color:var(--bad);animation:shake .4s}
+.choice.right:after{content:"✅";position:absolute;top:6px;right:10px}
+.choice.wrong:after{content:"❌";position:absolute;top:6px;right:10px}
+.shake{animation:shake .4s}
+.fb{display:flex;gap:14px;align-items:flex-start;border-radius:22px;padding:16px 18px;margin-top:16px;animation:pop .3s}
+.fb.good{background:color-mix(in srgb,var(--ok) 16%,var(--surface));border:3px solid var(--ok)}
+.fb.bad{background:color-mix(in srgb,var(--gold) 20%,var(--surface));border:3px solid var(--gold)}
+.fb .ico{font-size:2rem;line-height:1}
+.nextrow{text-align:center;margin-top:14px}
+/* éléments de jeux */
+.flips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:14px;margin-top:16px}
+.flip{padding:16px;border-radius:22px;background:var(--surface);border:3px solid var(--line);box-shadow:0 6px 0 var(--line);display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center;min-height:170px;justify-content:center}
+.flip .em{font-size:2.6rem}
+.flip .fd{font-size:.9rem;color:var(--muted);font-weight:700}
+.flip.open{border-color:var(--w);background:color-mix(in srgb,var(--w) 14%,var(--surface))}
+.bank{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:10px;margin:14px 0}
+.ex{font-size:2.4rem;padding:12px;border-radius:20px;background:var(--surface);border:3px solid var(--line);box-shadow:0 5px 0 var(--line)}
+.ex:disabled{opacity:.3;cursor:default}
+.chips{display:flex;gap:8px;flex-wrap:wrap;min-height:48px;margin:8px 0}
+.chip{padding:6px 14px;border-radius:999px;background:var(--surface2);font-weight:800;animation:pop .25s}
+.empty{color:var(--muted);font-style:italic}
+.seq{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-size:2.4rem;font-weight:900}
+.seq span{min-width:62px;height:62px;display:grid;place-items:center;background:var(--surface2);border-radius:18px;padding:0 6px}
+.seq span.q{background:var(--w);color:#fff;animation:wob 1.6s infinite}
+.tl{margin:0 0 16px;padding:0;list-style:none;border-left:5px solid var(--w);margin-left:12px}
+.tl li{position:relative;margin:0 0 12px 22px;padding:12px 14px;background:var(--surface);border-radius:18px;border:2px solid var(--line);animation:pop .3s}
+.tl li:before{content:"";position:absolute;left:-36px;top:18px;width:18px;height:18px;border-radius:50%;background:var(--w);border:4px solid var(--bg)}
+.tl b.y{display:inline-block;background:var(--w);color:#fff;border-radius:10px;padding:0 10px;margin-right:6px}
+.sel-group{margin:0 0 14px;border:0;padding:0}
+.sel-group legend{font-weight:900;margin-bottom:6px}
+.sel-group .choices{margin:6px 0;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr))}
+.sel-group .choice{min-height:72px;font-size:.95rem}
+.story{font-size:1.15rem}
+.codebox{background:var(--surface2);border-radius:14px;padding:10px 14px;font-family:ui-monospace,Consolas,monospace;font-size:.9rem;margin:10px 0}
+.dots span{display:inline-block;animation:floaty 1s infinite;font-size:2rem}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+.meter{height:14px;background:var(--surface2);border-radius:99px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--w);transition:width .3s}
+.res{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:16px;background:var(--surface2);margin:8px 0;font-weight:800;animation:pop .3s}
+.res .big{font-size:2.4rem}
+/* victoire */
+.win{text-align:center}
+.bigstars{font-size:3.6rem;letter-spacing:6px}
+.bigstars span{display:inline-block;color:var(--line)}
+.bigstars span.on{color:var(--gold);animation:starIn .6s both}
+.unlock{display:grid;gap:10px;margin-top:14px;text-align:left}
+.unlock .w{background:var(--surface2);border-radius:16px;padding:10px 14px;border-left:6px solid var(--w)}
+.learn{background:color-mix(in srgb,var(--w) 14%,var(--surface));border-radius:18px;padding:12px 16px;margin:14px 0;font-weight:700}
+/* dico et diplôme */
+.dict{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px;margin-top:14px}
+.dict .card{border-top:6px solid var(--w)}
+.dict h3{display:flex;gap:8px;align-items:center}
+.diploma{text-align:center;border:10px double var(--gold);border-radius:28px;padding:28px 20px;background:var(--surface);box-shadow:var(--shadow);max-width:720px;margin:14px auto}
+.diploma h1{font-size:clamp(2rem,6vw,3.2rem);color:var(--accent)}
+.dip-name{font-size:clamp(2rem,7vw,3.4rem);font-weight:900;border-bottom:4px dotted var(--line);display:inline-block;padding:0 24px;margin:6px 0 12px}
+.footer{text-align:center;color:var(--muted);padding:26px 5vw;font-size:.95rem}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+.prompt{position:relative}
+.qsay{position:absolute;top:10px;right:10px}
+.sayb{position:absolute;top:10px;right:10px}
+.dict .card,.unlock .w,.learn{position:relative;padding-right:64px}
+.unlock .w{padding:10px 64px 10px 14px}
+.wardrobe .card{text-align:center;padding-right:20px}
+.wardrobe .card .skinprev{display:flex;justify-content:center;min-height:120px}
+.wardrobe .locked .skinprev{filter:grayscale(1) brightness(.7)}
+.newskin{display:flex;gap:14px;align-items:center;background:color-mix(in srgb,var(--gold) 22%,var(--surface));border:3px solid var(--gold);border-radius:20px;padding:12px 16px;margin-top:14px;text-align:left;animation:pop .4s}
+/* mascotte */
+.pix{animation:bob 3s ease-in-out infinite;overflow:visible}
+.eye{transform-box:fill-box;transform-origin:center;animation:blink 4.5s infinite}
+.ant{animation:pulse 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.mascot.pop,.hero-pix.pop{animation:pop .35s}
+@keyframes bob{50%{transform:translateY(-6px) rotate(1.5deg)}}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+@keyframes pulse{50%{transform:scale(1.3);opacity:.7}}
+@keyframes pop{0%{transform:scale(.85);opacity:0}70%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
+@keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+@keyframes floaty{50%{transform:translateY(-8px)}}
+@keyframes wob{50%{transform:rotate(-1.2deg) scale(1.015)}}
+@keyframes starIn{from{transform:scale(0) rotate(-120deg)}to{transform:scale(1) rotate(0)}}
+@media (max-width:560px){body{font-size:17px}.mascot{width:72px}.bubble{padding:12px}.brand .a2{display:none}.choices.two{grid-template-columns:1fr 1fr}.bigemoji{font-size:4rem}}
+@media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+@media print{body{background:#fff!important;color:#000}.top,.footer,.noprint,#confetti{display:none!important}.diploma{box-shadow:none;border-color:#caa000;break-inside:avoid}}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="brand" onclick="home()" aria-label="Retour à l’accueil"><span class="logo" aria-hidden="true">🤖</span><span>IA <span class="a">EXPLORER</span></span></button>
+  <div class="tools">
+    <span class="pill" title="Tes étoiles">⭐ <b id="stars">0</b></span>
+    <button class="pill tool" id="tsound" aria-pressed="true" onclick="toggle('sound')">🔔 Sons</button>
+    <button class="pill tool" id="tvoice" aria-pressed="false" onclick="toggle('voice')">🗣️ Voix</button>
+  </div>
+</header>
+<main id="main" tabindex="-1"></main>
+<footer class="footer">Une aventure pour comprendre l’IA — apprendre, tester, vérifier 🤝</footer>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<noscript><p style="padding:20px">Active JavaScript pour jouer à IA Explorer.</p></noscript>
+<script>
+'use strict';
+/* ---------- Outils ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const M=$('#main');
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=a=>a[Math.random()*a.length|0];
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const wait=(ms,f)=>setTimeout(f,RM?Math.min(ms,50):ms);
+
+/* ---------- État (sauvegardé uniquement sur cet appareil) ---------- */
+const KEY='iaExplorer.v2';
+let S={name:'',mode:'8-10',sound:true,voice:false,best:{},skin:'base'};
+try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+const done=i=>(S.best[i]||0)>0;
+const totalStars=()=>Object.values(S.best).reduce((a,b)=>a+b,0);
+const young=()=>S.mode==='8-10';
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}renderTools()}
+function renderTools(){
+  $('#stars').textContent=totalStars();
+  const a=$('#tsound'),b=$('#tvoice');
+  a.setAttribute('aria-pressed',S.sound);a.textContent=(S.sound?'🔔':'🔕')+' Sons';
+  b.setAttribute('aria-pressed',S.voice);b.textContent='🗣️ Voix';
+}
+function toggle(k){S[k]=!S[k];save();if(k==='voice'){S.voice?speak('La voix de PIX est activée !'):speechSynthesis&&speechSynthesis.cancel()}else sfx.tap()}
+
+/* ---------- Sons (synthétisés, aucun fichier) ---------- */
+let ac;
+function tone(seq,type='triangle',vol=.14){
+  if(!S.sound)return;
+  try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();
+    let t=ac.currentTime;
+    seq.forEach(([f,d])=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;
+      g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d);t+=d*.85});
+  }catch(e){}
+}
+const sfx={tap:()=>tone([[660,.06]],'sine',.07),ok:()=>tone([[523,.1],[659,.1],[784,.2]]),no:()=>tone([[300,.14],[220,.24]],'sawtooth',.06),win:()=>tone([[523,.12],[659,.12],[784,.12],[1047,.34]])};
+
+/* ---------- Voix (synthèse vocale du navigateur) ---------- */
+/* Noms parlés des emojis utilisés dans les questions (sinon ils seraient muets) */
+const EMO={'🔴':'rouge','🔵':'bleu','🟢':'vert','🐱':'chat','🐶':'chien','🐭':'souris','⭐':'étoile','🌙':'lune','☀':'soleil','🍎':'pomme','🍏':'pomme verte','🍌':'banane','🍊':'orange','🍇':'raisin','🌩':'orage','💨':'vent','☔':'pluie','🏖':'plage','⛄':'bonhomme de neige'};
+const EMO_RE=new RegExp(Object.keys(EMO).join('|'),'g');
+function speak(t){
+  if(!('speechSynthesis' in window))return;
+  try{speechSynthesis.cancel();
+    t=String(t).replace(/️/g,'').replace(EMO_RE,m=>' '+EMO[m]+', ');
+    const u=new SpeechSynthesisUtterance(String(t).replace(/<[^>]+>/g,'').replace(/[\p{Extended_Pictographic}️‍]/gu,'').replace(/\s+/g,' ').trim());
+    u.lang='fr-FR';u.rate=.95;u.pitch=1.15;speechSynthesis.speak(u)}catch(e){}
+}
+
+/* ---------- Confettis ---------- */
+const parts=[];let confettiOn=false;
+function burst(n=90){
+  if(RM)return;
+  const c=$('#confetti'),cols=['#ff7a59','#7c5cff','#00b894','#ff4d8d','#f5a623','#2d9cff'];
+  c.width=innerWidth;c.height=innerHeight;
+  for(let i=0;i<n;i++)parts.push({x:innerWidth/2+(Math.random()-.5)*240,y:innerHeight*.4,vx:(Math.random()-.5)*15,vy:-Math.random()*14-3,s:6+Math.random()*7,r:Math.random()*6,vr:(Math.random()-.5)*.4,c:cols[Math.random()*cols.length|0]});
+  if(confettiOn)return;confettiOn=true;
+  const x=c.getContext('2d');
+  (function tick(){
+    x.clearRect(0,0,c.width,c.height);
+    for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.vy+=.38;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;
+      if(p.y>c.height+20){parts.splice(i,1);continue}
+      x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);x.restore()}
+    if(parts.length)requestAnimationFrame(tick);else{confettiOn=false;x.clearRect(0,0,c.width,c.height)}
+  })();
+}
+
+/* ---------- PIX, la mascotte ---------- */
+/* Costumes : back = derrière la tête, mid = sur le visage (sous les yeux), front = par-dessus */
+const SK={
+  base:{},
+  explorer:{front:'<ellipse cx="50" cy="25" rx="37" ry="6.5" fill="#c8923f"/><path d="M29 25q0-22 21-22t21 22z" fill="#d9a54f"/><rect x="29" y="17" width="42" height="6" fill="#8a5a2b"/>'},
+  savant:{front:'<g fill="none" stroke="#17203a" stroke-width="3"><circle cx="38" cy="50" r="10"/><circle cx="62" cy="50" r="10"/><path d="M48 50h4M28 48l-8-3M72 48l8-3"/></g><path d="M30 86h40l-6 10h-28z" fill="#fff" stroke="#c9d0ee" stroke-width="2"/>'},
+  hero:{back:'<path d="M18 84L4 110h92L82 84z" fill="#e63946"/>',mid:'<rect x="23" y="41" width="54" height="19" rx="9.5" fill="#e63946"/>',front:'<path d="M50 90l3 6h6l-5 4 2 6-6-4-6 4 2-6-5-4h6z" fill="#ffbd35"/>'},
+  magic:{front:'<ellipse cx="50" cy="25" rx="33" ry="5.5" fill="#3a2f7a"/><path d="M33 25L43-7h14l10 32z" fill="#4b3fa0"/><rect x="34" y="17" width="32" height="5" fill="#ff4d8d"/><circle cx="50" cy="6" r="4" fill="#ffd166"/>'},
+  astro:{front:'<rect x="5" y="14" width="90" height="78" rx="34" fill="#9ad8ff" fill-opacity=".22" stroke="#d6f0ff" stroke-width="3.5"/><path d="M16 40q4-16 24-20" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".8"/>'},
+  artist:{front:'<path d="M20 28q2-20 32-19t31 19q-31-5-63 0z" fill="#e63946"/><circle cx="53" cy="8" r="3.5" fill="#e63946"/>'},
+  king:{front:'<path d="M29 25V6l11 9 10-13 10 13 11-9v19z" fill="#ffbd35" stroke="#e09f00" stroke-width="2" stroke-linejoin="round"/><circle cx="50" cy="19" r="3" fill="#e63946"/><circle cx="35" cy="19" r="2.2" fill="#2d9cff"/><circle cx="65" cy="19" r="2.2" fill="#43c04a"/>'}
+};
+const skins=[
+  {id:'base',w:-1,n:'PIX classique'},{id:'explorer',w:0,n:'PIX l’explorateur'},{id:'savant',w:1,n:'PIX le savant'},{id:'hero',w:2,n:'PIX super-héros'},
+  {id:'magic',w:3,n:'PIX le magicien'},{id:'astro',w:4,n:'PIX l’astronaute'},{id:'artist',w:5,n:'PIX l’artiste'},{id:'king',w:6,n:'PIX le champion'}];
+const skinOpen=k=>k.w<0||done(k.w);
+function pix(mood='happy',s=96,skin=S.skin){
+  const ink='#17203a',sk=SK[skin]||{};
+  const eyes={
+    happy:`<circle class="eye" cx="38" cy="50" r="6" fill="${ink}"/><circle class="eye" cx="62" cy="50" r="6" fill="${ink}"/><circle cx="40" cy="48" r="2" fill="#fff"/><circle cx="64" cy="48" r="2" fill="#fff"/>`,
+    cheer:`<path d="M31 53q7-10 14 0M55 53q7-10 14 0" fill="none" stroke="${ink}" stroke-width="4.5" stroke-linecap="round"/>`,
+    wow:`<circle cx="38" cy="50" r="8" fill="${ink}"/><circle cx="62" cy="50" r="8" fill="${ink}"/><circle cx="41" cy="47" r="2.5" fill="#fff"/><circle cx="65" cy="47" r="2.5" fill="#fff"/>`,
+    think:`<circle class="eye" cx="38" cy="50" r="6" fill="${ink}"/><circle class="eye" cx="62" cy="50" r="6" fill="${ink}"/><circle cx="41" cy="46" r="2" fill="#fff"/><circle cx="65" cy="46" r="2" fill="#fff"/><path d="M54 39q8-5 16-1" fill="none" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/>`,
+    oops:`<circle class="eye" cx="38" cy="53" r="6" fill="${ink}"/><circle class="eye" cx="62" cy="53" r="6" fill="${ink}"/><path d="M30 41l16 5M70 41l-16 5" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/><path d="M84 24q-6 9 0 12t0-12z" fill="#4cc9f0"/>`
+  };
+  const mouth={
+    happy:`<path d="M40 63q10 10 20 0" fill="none" stroke="${ink}" stroke-width="4" stroke-linecap="round"/>`,
+    cheer:`<path d="M39 61h22q-1 11-11 11t-11-11z" fill="${ink}"/><path d="M44 68q6 4 12 0" fill="#ff7a8a"/>`,
+    wow:`<ellipse cx="50" cy="67" rx="5" ry="6.5" fill="${ink}"/>`,
+    think:`<path d="M43 67h13" stroke="${ink}" stroke-width="4" stroke-linecap="round"/>`,
+    oops:`<path d="M39 69q5-6 10 0t11 0" fill="none" stroke="${ink}" stroke-width="3.8" stroke-linecap="round"/>`
+  };
+  const m=eyes[mood]?mood:'happy';
+  return `<svg class="pix" viewBox="0 -12 100 124" width="${s}" height="${s*1.24}" role="img" aria-label="PIX, le robot"><line x1="50" y1="22" x2="50" y2="11" stroke="#8b8fb5" stroke-width="4" stroke-linecap="round"/><circle class="ant" cx="50" cy="8" r="6" fill="#ffbd35"/>${sk.back||''}<rect x="6" y="46" width="10" height="22" rx="5" fill="#ff7a59"/><rect x="84" y="46" width="10" height="22" rx="5" fill="#ff7a59"/><rect x="14" y="22" width="72" height="62" rx="24" fill="#6c63ff"/><rect x="22" y="32" width="56" height="46" rx="18" fill="#fff"/>${sk.mid||''}${eyes[m]}<circle cx="28" cy="63" r="4.5" fill="#ff8fab" opacity=".6"/><circle cx="72" cy="63" r="4.5" fill="#ff8fab" opacity=".6"/>${mouth[m]||mouth.happy}<rect x="30" y="86" width="40" height="18" rx="9" fill="#5148d8"/><circle cx="50" cy="95" r="4" fill="#ffbd35"/>${sk.front||''}</svg>`;
+}
+
+/* ---------- Contenu ---------- */
+const worlds=[
+ {e:'🌍',c:'#ff7a59',t:'L’IA est-elle partout ?',d:'Trie les objets : avec ou sans IA ?',k:'L’IA est présente dans beaucoup d’outils, mais pas dans tous : de nombreux appareils suivent juste des règles simples.',run:g1},
+ {e:'🧠',c:'#7c5cff',t:'Qu’est-ce que l’IA ?',d:'Découvre les 4 super-pouvoirs de l’IA.',k:'L’IA sait reconnaître, comprendre, prédire et créer… mais ce n’est pas un cerveau humain.',run:g2},
+ {e:'📊',c:'#00b894',t:'Entraîne PIX',d:'Donne des exemples pour apprendre à PIX.',k:'Plus les exemples sont variés, mieux l’IA apprend. Des exemples oubliés créent des erreurs : c’est un biais.',run:g3},
+ {e:'🔮',c:'#ff4d8d',t:'L’IA prédit',d:'Repère des motifs et devine la suite.',k:'L’IA repère des motifs dans les données du passé pour faire une prédiction. Une prédiction n’est pas une certitude !',run:g4},
+ {e:'⏳',c:'#f5a623',t:'La grande histoire',d:'Remets l’histoire de l’IA dans l’ordre.',k:'L’IA a une longue histoire : des idées de 1950 jusqu’aux IA qui créent aujourd’hui.',run:g5},
+ {e:'🎨',c:'#2d9cff',t:'L’IA crée',d:'Invente une histoire avec la machine à idées.',k:'Ta demande s’appelle un prompt. L’IA générative assemble ce qu’elle a appris et peut donner des résultats différents.',run:g6},
+ {e:'🤝',c:'#43c04a',t:'Humain + IA',d:'Garde ton esprit critique !',k:'L’IA peut aider, mais c’est toi qui vérifies, qui protèges tes informations et qui gardes le dernier mot.',run:g7}
+];
+const dict=[
+ {w:0,e:'🤖',t:'Intelligence artificielle',d:'Des techniques qui permettent à des machines de réaliser des tâches comme reconnaître, comprendre, prédire ou créer.'},
+ {w:1,e:'📜',t:'Algorithme',d:'Une suite d’instructions, étape par étape, pour réaliser une tâche. Comme une recette de cuisine !'},
+ {w:2,e:'🗂️',t:'Donnée',d:'Une information (image, son, texte, nombre) que l’IA utilise pour apprendre.'},
+ {w:2,e:'🧩',t:'Modèle',d:'Ce que l’IA a appris à partir des données. Il sert ensuite à reconnaître ou à prédire.'},
+ {w:2,e:'⚖️',t:'Biais',d:'Quand les données sont incomplètes ou déséquilibrées, l’IA se trompe plus souvent sur certains cas.'},
+ {w:3,e:'🔮',t:'Prédiction',d:'Une estimation de ce qui va probablement arriver. Ce n’est pas une certitude.'},
+ {w:4,e:'💬',t:'Test de Turing',d:'Une idée d’Alan Turing (1950) : une machine peut-elle discuter si bien qu’on ne sait plus si c’est un humain ?'},
+ {w:5,e:'✨',t:'IA générative',d:'Une IA capable de produire du contenu nouveau : textes, images, sons…'},
+ {w:5,e:'⌨️',t:'Prompt',d:'La demande que tu écris à une IA générative pour lui dire ce que tu veux.'},
+ {w:6,e:'🧐',t:'Esprit critique',d:'Se poser des questions, comparer des sources et vérifier avant de croire.'},
+ {w:6,e:'🌀',t:'Hallucination',d:'Quand une IA invente une réponse qui a l’air vraie mais qui est fausse.'}
+];
+const rank=()=>{const n=worlds.filter((_,i)=>done(i)).length;return n>=7?['🏆','Maître de l’IA']:n>=5?['🚀','Super explorateur']:n>=3?['🔍','Petit détective']:n>=1?['🌱','Apprenti curieux']:['🥚','Jeune explorateur']};
+
+/* ---------- Navigation ---------- */
+function view(html,keep){
+  try{speechSynthesis.cancel()}catch(e){}
+  M.innerHTML=html;if(!keep){scrollTo(0,0);M.focus({preventScroll:true})}
+}
+/* Toute pastille 🔊 portant data-say lit son texte à voix haute */
+document.addEventListener('click',e=>{const b=e.target.closest('[data-say]');if(b)speak(b.dataset.say)});
+const sayBtn=t=>`<button class="mini sayb" data-say="${esc(t)}" aria-label="Écouter">🔊</button>`;
+function wear(id){
+  S.skin=id;save();sfx.ok();
+  if($('.wardrobe'))return wardrobe(true);
+  const m=$('#mascot');if(m)mascot('cheer');
+}
+function wardrobe(keep){
+  const n=skins.filter(skinOpen).length;
+  view(`<section class="game"><div class="gbar"><button class="btn alt sm" onclick="showMap()">← Carte</button><h2 class="gtitle">👕 La garde-robe de PIX</h2></div>
+  <p class="instruction">Chaque monde terminé débloque un nouveau costume pour PIX. ${n} / ${skins.length} costumes.</p>
+  <div class="dict wardrobe">${skins.map(k=>{const u=skinOpen(k),on=(S.skin||'base')===k.id;
+    return `<article class="card ${u?'':'locked'}" style="--w:${k.w<0?'#7c5cff':worlds[k.w].c}"><div class="skinprev">${pix(on?'cheer':'happy',100,k.id)}</div><h3 style="justify-content:center">${k.n}</h3>
+    ${u?`<button class="btn ${on?'':'alt'} sm" aria-pressed="${on}" onclick="wear('${k.id}')">${on?'✓ Porté':'Mettre'}</button>`:`<p>🔒 Termine le monde ${k.w+1}</p>`}</article>`}).join('')}</div></section>`,keep);
+}
+const segHtml=()=>['8-10','11-12'].map(m=>`<button aria-pressed="${S.mode===m}" onclick="setMode('${m}')">${m==='8-10'?'🌱':'🚀'} ${m.replace('-','–')} ans</button>`).join('');
+function setMode(m){S.mode=m;save();sfx.tap();$('#seg').innerHTML=segHtml();$('#modeinfo').textContent=modeInfo()}
+const modeInfo=()=>young()?'Parcours découverte : moins de questions, plus d’indices.':'Parcours défi : plus de questions et quelques pièges !';
+
+function home(){
+  const started=Object.keys(S.best).length>0;
+  view(`<section class="hero">
+    <div class="hero-pix">${pix('cheer',150)}</div>
+    <h1>IA <span>EXPLORER</span></h1>
+    <p class="subtitle">${S.name?`Salut ${esc(S.name)} ! `:'Salut ! '}Je suis <b>PIX</b>, ton robot copain. Ensemble, on part découvrir l’intelligence artificielle en jouant !</p>
+    <p><button class="btn alt sm" data-say="${esc((S.name?'Salut '+S.name+' ! ':'Salut ! ')+'Je suis PIX, ton robot copain. Ensemble, on part découvrir l’intelligence artificielle en jouant !')}">🔊 Écouter PIX</button></p>
+    <div class="card setup">
+      <label for="nm">Comment t’appelles-tu ?</label>
+      <input id="nm" maxlength="14" autocomplete="off" placeholder="Ton prénom (facultatif)" value="${esc(S.name)}">
+      <fieldset><legend>Ton âge</legend><div class="seg" id="seg">${segHtml()}</div></fieldset>
+      <p class="small" id="modeinfo">${modeInfo()}</p>
+    </div>
+    <button class="btn big" id="start">${started?'▶ Continuer l’aventure':'🚀 Commencer l’aventure'}</button>
+    <p class="small" style="margin-top:18px">🔒 Aucune donnée n’est envoyée : ta progression reste sur cet appareil.</p>
+  </section>`);
+  const nm=$('#nm');
+  nm.oninput=()=>{S.name=nm.value.trim();save()};
+  nm.onkeydown=e=>{if(e.key==='Enter')showMap()};
+  $('#start').onclick=()=>{sfx.ok();showMap()};
+}
+
+function showMap(){
+  const n=worlds.filter((_,i)=>done(i)).length,[ri,rn]=rank(),nextI=worlds.findIndex((_,i)=>!done(i));
+  view(`<div class="maphead">
+    <div><h2>🗺️ ${S.name?esc(S.name)+', ta':'Ta'} carte d’exploration</h2><p class="instruction">Termine chaque monde pour gagner jusqu’à 3 étoiles et débloquer le suivant.</p></div>
+    <div class="rank">${ri} ${rn}</div></div>
+    <div class="stats"><span class="badge">⭐ ${totalStars()} / 21</span><span class="badge">🏅 ${n} / 7 mondes</span>
+      <button class="btn alt sm" onclick="dictionary()">📚 Mon dictionnaire</button><button class="btn alt sm" onclick="wardrobe()">👕 Garde-robe (${skins.filter(skinOpen).length}/${skins.length})</button><button class="btn alt sm" onclick="resetProgress()">↻ Recommencer</button></div>
+    <div class="prog" style="--w:var(--accent)" role="progressbar" aria-valuemin="0" aria-valuemax="7" aria-valuenow="${n}"><i style="width:${n/7*100}%"></i></div>
+    <div class="map">${worlds.map((w,i)=>{
+      const open=i===0||done(i-1),st=S.best[i]||0;
+      return `<article class="card world ${open?'':'locked'} ${i===nextI?'next':''}" style="--w:${w.c}">
+        <div class="tile" aria-hidden="true">${open?w.e:'🔒'}</div>
+        <div><span class="num">Monde ${i+1}</span><h3>${w.t}</h3><p>${open?w.d:'Termine le monde '+i+' pour l’ouvrir.'}</p>
+          <div class="mstars" role="img" aria-label="${st} étoile${st>1?'s':''} sur 3">${'★'.repeat(st)}${'☆'.repeat(3-st)}</div></div>
+        <button class="btn ${open?'':'alt'}" ${open?`onclick="play(${i})"`:'disabled'}>${open?(done(i)?'Rejouer ↻':'Jouer 🚀'):'Verrouillé'}</button></article>`}).join('')}
+      <article class="card world ${n===7?'next':'locked'}" style="--w:#ffb703">
+        <div class="tile" aria-hidden="true">${n===7?'🎓':'🔒'}</div>
+        <div><span class="num">Final</span><h3>Ton diplôme</h3><p>${n===7?'Bravo, tu as tout terminé !':'Termine les 7 mondes.'}</p></div>
+        <button class="btn ${n===7?'':'alt'}" ${n===7?'onclick="diploma()"':'disabled'}>${n===7?'Voir mon diplôme 🎓':'Verrouillé'}</button></article>
+    </div>`);
+}
+function play(i){sfx.tap();worlds[i].run()}
+
+function dictionary(){
+  view(`<section class="game"><div class="gbar"><button class="btn alt sm" onclick="showMap()">← Carte</button><h2 class="gtitle">📚 Mon dictionnaire de l’IA</h2></div>
+  <p class="instruction">Chaque monde terminé débloque de nouveaux mots. ${dict.filter(d=>done(d.w)).length} / ${dict.length} mots découverts.</p>
+  <div class="dict">${dict.map(d=>done(d.w)
+    ?`<article class="card" style="--w:${worlds[d.w].c}">${sayBtn(d.t+'. '+d.d)}<h3><span aria-hidden="true">${d.e}</span> ${d.t}</h3><p>${d.d}</p></article>`
+    :`<article class="card locked" style="--w:${worlds[d.w].c}"><h3>🔒 Mot secret</h3><p>Termine le monde ${d.w+1} pour le découvrir.</p></article>`).join('')}</div></section>`);
+}
+function resetProgress(){
+  if(confirm('Recommencer toute l’aventure ? Tes étoiles et tes costumes seront effacés.')){S.best={};S.skin='base';save();showMap()}
+}
+
+/* ---------- Cadre commun des jeux ---------- */
+let G=null,cur='';
+function frame(i){
+  const w=worlds[i];G={i,mist:0,total:1,tries:0};cur='';
+  view(`<section class="game" style="--w:${w.c}">
+    <div class="gbar"><button class="btn alt sm" onclick="showMap()">← Carte</button><h2 class="gtitle"><span aria-hidden="true">${w.e}</span> ${w.t}</h2></div>
+    <div id="prog" class="progwrap"></div>
+    <div class="coach"><div class="mascot" id="mascot">${pix('happy',96)}</div>
+      <div class="bubble"><span id="say"></span><button class="mini" id="hear" aria-label="Écouter PIX">🔊</button></div></div>
+    <div id="stage"></div><div id="fb" aria-live="polite"></div></section>`);
+  $('#hear').onclick=()=>speak(cur);
+}
+function mascot(mood){const m=$('#mascot');if(!m)return;m.innerHTML=pix(mood,96);m.classList.remove('pop');void m.offsetWidth;m.classList.add('pop')}
+function say(msg,mood='happy'){cur=msg;$('#say').textContent=msg;mascot(mood);if(S.voice)speak(msg)}
+/* Pose une pastille 🔊 sur la question en cours et la lit seule si la voix est activée */
+function ask(text,pre='',auto=true){
+  const c=$('#stage .prompt');
+  if(c&&!c.querySelector('.qsay')){c.insertAdjacentHTML('afterbegin','<button class="mini qsay" aria-label="Écouter la question">🔊</button>');c.querySelector('.qsay').onclick=()=>speak(text)}
+  cur=text;if(S.voice&&auto)speak(pre+text);
+}
+function setProg(k,n){$('#prog').innerHTML=`<div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${k}"><i style="width:${k/n*100}%"></i></div><small>${k<n?'Étape '+(k+1)+' sur '+n:'Terminé !'}</small>`}
+function lock(){document.querySelectorAll('#stage .choice').forEach(b=>b.disabled=true)}
+
+function verdict(ok,msg,next,btn='Suivant ➜'){
+  let t;
+  if(ok){sfx.ok();burst(30);t=pick(['Bravo !','Super !','Bien joué !','Excellent !','Yes !'])}
+  else{G.mist++;sfx.no();t=pick(['Oups !','Pas tout à fait…','Presque !','Aïe !'])}
+  mascot(ok?'cheer':'oops');
+  $('#fb').innerHTML=`<div class="fb ${ok?'good':'bad'}"><div class="ico" aria-hidden="true">${ok?'✅':'💡'}</div><div><b>${t}</b> ${msg}</div></div><div class="nextrow"><button class="btn big" id="nextb">${btn}</button></div>`;
+  const nb=$('#nextb');nb.onclick=()=>{sfx.tap();next()};nb.focus({preventScroll:true});
+  if(S.voice)speak(t+' '+msg);
+  $('#fb').scrollIntoView({block:'nearest',behavior:RM?'auto':'smooth'});
+}
+/* decide(bouton) -> vrai si c’est la bonne réponse */
+function bindChoices(decide,why,next){
+  const bs=[...document.querySelectorAll('#stage .choice')];
+  bs.forEach(b=>b.onclick=()=>{
+    const ok=decide(b);lock();b.classList.add(ok?'right':'wrong');
+    if(!ok){const r=bs.find(decide);if(r)r.classList.add('right')}
+    verdict(ok,typeof why==='function'?why(b,ok):why,next)});
+}
+function win(i,total=G.total){
+  const m=G.mist;
+  winStars(i,m<=Math.floor(total*.15)?3:m<=Math.floor(total*.4)?2:1);
+}
+function winStars(i,st){
+  const first=!done(i),w=worlds[i],skin=skins.find(k=>k.w===i);
+  S.best[i]=Math.max(S.best[i]||0,st);save();
+  const words=dict.filter(d=>d.w===i);
+  const msg=st===3?'Parfait, quasiment aucune erreur !':st===2?'Très bien joué !':'Tu as réussi ! Rejoue pour gagner plus d’étoiles.';
+  $('#prog').innerHTML=`<div class="prog"><i style="width:100%"></i></div>`;$('#fb').innerHTML='';
+  $('#stage').innerHTML=`<div class="card win"><div class="bigstars" role="img" aria-label="${st} étoile${st>1?'s':''} sur 3">${[1,2,3].map(n=>`<span class="${n<=st?'on':''}" style="animation-delay:${n*.25}s">★</span>`).join('')}</div>
+    <h2>Monde terminé !</h2><p>${msg}</p>
+    <div class="learn" style="text-align:left">${sayBtn('À retenir : '+w.k)}💡 À retenir : ${w.k}</div>
+    ${first?`<div class="unlock"><b>📚 Nouveau${words.length>1?'x':''} mot${words.length>1?'s':''} dans ton dictionnaire :</b>${words.map(d=>`<div class="w" style="--w:${w.c}">${sayBtn(d.t+'. '+d.d)}<b>${d.e} ${d.t}</b><br>${d.d}</div>`).join('')}</div>`:''}
+    ${first&&skin?`<div class="newskin"><div>${pix('cheer',84,skin.id)}</div><div style="flex:1"><b>🎁 Nouveau costume : ${skin.n} !</b><br><button class="btn sm" id="wear">👕 Le mettre</button></div></div>`:''}
+    <div class="btnrow"><button class="btn big" id="go">${i<6?'Monde suivant ➜':'🎓 Mon diplôme'}</button><button class="btn alt" id="again">↻ Rejouer</button><button class="btn alt" id="map">🗺️ Carte</button></div></div>`;
+  $('#go').onclick=()=>i<6?play(i+1):diploma();$('#again').onclick=()=>play(i);$('#map').onclick=showMap;
+  if($('#wear'))$('#wear').onclick=()=>{wear(skin.id);$('#wear').textContent='✓ Porté !';$('#wear').disabled=true};
+  sfx.win();burst(170);say(`${S.name?S.name+', ':''}${msg} ${w.k}${first&&skin?' Tu as débloqué un nouveau costume pour PIX !':''}`,'cheer');
+  $('#go').focus({preventScroll:true});
+}
+
+/* ---------- Monde 1 : IA ou pas IA ---------- */
+function g1(){
+  frame(0);
+  const pool=[
+    {e:'📱',n:'GPS qui évite les embouteillages',ai:1,w:'Il prédit le trafic grâce à des millions de trajets passés.',lv:0},
+    {e:'🚲',n:'Vélo',ai:0,w:'Il avance grâce à tes jambes, sans aucun programme intelligent.',lv:0},
+    {e:'🎙️',n:'Assistant vocal',ai:1,w:'Il reconnaît ta voix et comprend ta demande.',lv:0},
+    {e:'🔦',n:'Lampe de poche',ai:0,w:'Tu appuies, ça s’allume. Elle n’apprend rien du tout.',lv:0},
+    {e:'🎬',n:'Vidéos conseillées pour toi',ai:1,w:'Elle repère ce que tu aimes pour te proposer d’autres vidéos.',lv:0},
+    {e:'🍞',n:'Grille-pain',ai:0,w:'Il suit une règle toute simple : chauffer pendant un temps réglé.',lv:0},
+    {e:'📷',n:'Appareil photo qui repère les visages',ai:1,w:'Il a appris à reconnaître des visages pour faire la mise au point.',lv:0},
+    {e:'🧮',n:'Calculatrice simple',ai:0,w:'Elle suit des règles de calcul toujours identiques.',lv:0},
+    {e:'🚗',n:'Voiture qui lit les panneaux de vitesse',ai:1,w:'Elle reconnaît les panneaux sur les images de sa caméra.',lv:1},
+    {e:'✉️',n:'Filtre anti-spam des e-mails',ai:1,w:'Il apprend à repérer les messages indésirables.',lv:1},
+    {e:'🚪',n:'Porte automatique à capteur',ai:0,w:'Un capteur détecte quelqu’un et la porte s’ouvre : une règle simple, sans apprentissage.',lv:1},
+    {e:'⏰',n:'Réveil réglé sur 7 h',ai:0,w:'Il sonne à l’heure programmée, c’est tout.',lv:1},
+    {e:'🌡️',n:'Thermostat qui apprend tes habitudes',ai:1,w:'Il observe quand tu chauffes pour s’adapter tout seul.',lv:1}
+  ];
+  const n=young()?6:8,items=shuffle(young()?pool.filter(p=>!p.lv):pool).slice(0,n);G.total=n;
+  const intro='Bienvenue ! Pour chaque objet, dis-moi s’il utilise de l’IA ou non.';
+  say(intro,'happy');
+  (function step(k){
+    if(k>=n)return win(0);
+    setProg(k,n);const it=items[k];$('#fb').innerHTML='';
+    $('#stage').innerHTML=`<div class="card prompt"><div class="bigemoji" aria-hidden="true">${it.e}</div><h2>${it.n}</h2></div>
+      <div class="choices two"><button class="choice" data-a="1"><span class="em">🤖</span>Avec IA</button><button class="choice" data-a="0"><span class="em">⚙️</span>Sans IA</button></div>`;
+    ask(`${it.n}. Cet objet utilise-t-il de l’IA ? Avec IA, ou sans IA ?`,k===0?intro+' ':'');
+    bindChoices(b=>+b.dataset.a===it.ai,()=>(it.ai?'C’est de l’IA ! ':'Pas d’IA ici. ')+it.w,()=>step(k+1));
+  })(0);
+}
+
+/* ---------- Monde 2 : les 4 super-pouvoirs ---------- */
+function g2(){
+  frame(1);
+  const powers=[
+    {e:'👀',n:'Reconnaître',d:'Repérer un visage, un animal ou un mot dans une image ou un son.'},
+    {e:'👂',n:'Comprendre',d:'Comprendre ta voix ou un texte pour répondre à ta demande.'},
+    {e:'🔮',n:'Prédire',d:'Deviner ce qui va probablement arriver : la météo, le trafic, le mot suivant…'},
+    {e:'🎨',n:'Créer',d:'Fabriquer du contenu nouveau : images, textes, musiques.'}];
+  const all=[
+    {t:'Ton téléphone se déverrouille avec ton visage.',p:0,w:'il repère ton visage parmi tous les autres.'},
+    {t:'Tu parles à un assistant et il répond à ta question.',p:1,w:'il comprend ce que tu dis.'},
+    {t:'Une appli annonce que le bus arrivera dans 4 minutes.',p:2,w:'elle estime ce qui va arriver.'},
+    {t:'Un outil dessine un dragon à partir de ta description.',p:3,w:'il fabrique une image nouvelle.'},
+    {t:'Une appli traduit ce que tu dis dans une autre langue.',p:1,w:'elle comprend ta phrase avant de la traduire.'},
+    {t:'Ton clavier te propose le mot suivant.',p:2,w:'il prédit le mot le plus probable.'},
+    {t:'Un logiciel compose une petite musique originale.',p:3,w:'il crée un contenu qui n’existait pas.'},
+    {t:'Une caméra repère un chien dans une photo.',p:0,w:'elle reconnaît l’animal sur l’image.'}];
+  const seen=new Set();
+  say('Voici les 4 super-pouvoirs de l’IA. Touche chaque carte pour les découvrir !','happy');$('#prog').innerHTML='';
+  $('#stage').innerHTML=`<div class="card"><p><b>L’intelligence artificielle</b>, ce sont des machines qui réalisent des tâches qui demandent d’habitude de l’intelligence humaine. Elles apprennent à partir de <b>données</b> : images, sons, textes…</p></div>
+    <div class="flips">${powers.map((p,i)=>`<button class="flip" data-i="${i}" aria-expanded="false"><span class="em" aria-hidden="true">${p.e}</span><b>${p.n}</b><span class="fd">Touche pour découvrir</span></button>`).join('')}</div><div id="after"></div>`;
+  document.querySelectorAll('.flip').forEach(b=>b.onclick=()=>{
+    const p=powers[+b.dataset.i];sfx.tap();b.classList.add('open');b.setAttribute('aria-expanded','true');b.querySelector('.fd').textContent=p.d;seen.add(b.dataset.i);
+    say(p.n+' : '+p.d,'wow');
+    if(seen.size===4){
+      $('#after').innerHTML=`<div class="card" style="margin-top:16px"><b>⚠️ Attention :</b> l’IA n’est pas un cerveau humain. Elle ne ressent rien : elle utilise des données et des calculs.</div><div class="btnrow"><button class="btn big" id="go">À toi de jouer ➜</button></div>`;
+      $('#go').onclick=()=>{sfx.tap();part2()};$('#go').scrollIntoView({block:'nearest',behavior:RM?'auto':'smooth'});
+    }});
+  function part2(){
+    const n=young()?4:6,items=young()?all.slice(0,4):shuffle(all).slice(0,n);G.total=n;
+    const intro='Quel super-pouvoir l’IA utilise-t-elle dans chaque situation ?';
+    say(intro,'think');
+    (function step(k){
+      if(k>=n)return win(1);
+      setProg(k,n);const it=items[k];$('#fb').innerHTML='';
+      $('#stage').innerHTML=`<div class="card prompt"><h2>${it.t}</h2></div><div class="choices">${powers.map((p,i)=>`<button class="choice" data-p="${i}"><span class="em">${p.e}</span>${p.n}</button>`).join('')}</div>`;
+      ask(`${it.t} Quel super-pouvoir ? Reconnaître, comprendre, prédire, ou créer ?`,k===0?intro+' ':'');
+      bindChoices(b=>+b.dataset.p===it.p,()=>`C’est « ${powers[it.p].n} » : ${it.w}`,()=>step(k+1));
+    })(0);
+  }
+}
+
+/* ---------- Monde 3 : entraîner PIX ---------- */
+function g3(){
+  frame(2);
+  const budget=young()?6:5;
+  const bank=shuffle([['🍎','pomme rouge'],['🍎','pomme rouge'],['🍎','pomme rouge'],['🍏','pomme verte'],['🍌','banane'],['🍌','banane'],['🍌','banane'],['🍊','orange'],['🍊','orange'],['🍊','orange']]);
+  const labelOf={'pomme rouge':'pomme','pomme verte':'pomme','banane':'banane','orange':'orange'};
+  let chosen=new Set();
+  function setup(){
+    G.tries++;chosen=new Set();$('#fb').innerHTML='';$('#prog').innerHTML='';
+    say(`PIX doit apprendre à reconnaître des fruits. Choisis ${budget} images pour l’entraîner. Pense à bien varier !`,'happy');
+    $('#stage').innerHTML=`<div class="card"><b>📦 La boîte d’exemples</b> <span class="small">— touche une image pour la donner à PIX</span><div class="bank" id="bank"></div></div>
+      <div class="card"><b>🧠 Ce que PIX a appris</b><div class="chips" id="bag"></div><div class="meter"><i id="bar"></i></div><small id="cnt"></small></div>
+      <div class="btnrow"><button class="btn big" id="test">🧪 Tester PIX</button><button class="btn alt" id="clear">↺ Vider</button></div>`;
+    $('#test').onclick=runTest;$('#clear').onclick=()=>{chosen.clear();paint()};paint();
+  }
+  function paint(){
+    $('#bank').innerHTML=bank.map((b,i)=>`<button class="ex" data-i="${i}" aria-label="Exemple : ${b[1]}" ${chosen.has(i)||(chosen.size>=budget)?'disabled':''}>${b[0]}</button>`).join('');
+    $('#bag').innerHTML=chosen.size?[...chosen].map(i=>`<button class="chip" data-i="${i}" aria-label="Retirer ${bank[i][1]}">${bank[i][0]} ${labelOf[bank[i][1]]} ✕</button>`).join(''):'<span class="empty">PIX ne sait encore rien…</span>';
+    $('#bar').style.width=chosen.size/budget*100+'%';$('#cnt').textContent=`${chosen.size} / ${budget} exemples`;$('#test').disabled=chosen.size<2;
+    document.querySelectorAll('.ex').forEach(b=>b.onclick=()=>{sfx.tap();chosen.add(+b.dataset.i);paint();if(chosen.size===1)say('Bien ! Plus il y a d’exemples différents, mieux PIX apprend.','happy');else if(S.voice)speak(bank[+b.dataset.i][1])});
+    document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{chosen.delete(+b.dataset.i);paint()});
+  }
+  function runTest(){
+    const seen=new Set([...chosen].map(i=>bank[i][1]));
+    const tests=shuffle([['🍏','pomme verte'],['🍎','pomme rouge'],['🍊','orange'],['🍌','banane']]);
+    say('PIX regarde de nouvelles images… Va-t-il les reconnaître ?','think');
+    $('#stage').innerHTML=`<div class="card"><b>🧪 Le test de PIX</b><div id="res"></div></div>`;
+    let score=0;
+    tests.forEach(([e,l],k)=>wait(700*(k+1),()=>{
+      const ok=seen.has(l);if(ok)score++;ok?sfx.ok():sfx.no();
+      if(S.voice)speak(ok?`C’est une ${labelOf[l]} !`:'Je n’ai jamais vu ça…');
+      $('#res').insertAdjacentHTML('beforeend',`<div class="res"><span class="big" aria-hidden="true">${e}</span><span>${ok?`PIX dit : « C’est une ${labelOf[l]} ! » ✅`:'PIX hésite : « Je n’ai jamais vu ça… » 🤔❌'}</span></div>`);
+      if(k===tests.length-1)wait(600,()=>end(score,tests.filter(t=>!seen.has(t[1]))));
+    }));
+  }
+  function end(score,missing){
+    const pass=score>=3,stars=score===4?(G.tries<=1?3:2):1;
+    mascot(pass?'cheer':'oops');
+    const hint=missing.length?`PIX n’a jamais vu : <b>${missing.map(m=>m[0]+' '+m[1]).join(', ')}</b>. `:'';
+    const text=score===4?'PIX a tout reconnu : tes exemples étaient bien variés !':pass?`Pas mal, mais ${hint}Une IA ne reconnaît bien que ce qu’elle a déjà vu : c’est un <b>biais</b> dans les données.`:`${hint}Une IA ne reconnaît bien que ce qu’elle a déjà vu. Essaie avec des exemples plus variés !`;
+    $('#fb').innerHTML=`<div class="fb ${pass?'good':'bad'}"><div class="ico" aria-hidden="true">${pass?'✅':'💡'}</div><div><b>Score : ${score} / 4.</b> ${text}</div></div>
+      <div class="btnrow">${pass?`<button class="btn big" id="ok">Continuer ➜</button>`:''}<button class="btn ${pass?'alt':'big'}" id="retry">↻ ${pass?'Faire mieux':'Réessayer'}</button></div>`;
+    if(pass)$('#ok').onclick=()=>winStars(2,stars);
+    $('#retry').onclick=setup;
+    cur=text.replace(/<[^>]+>/g,'');if(S.voice)speak(cur);
+    $('#fb').scrollIntoView({block:'nearest',behavior:RM?'auto':'smooth'});
+  }
+  setup();
+}
+
+/* ---------- Monde 4 : prédire ---------- */
+function g4(){
+  frame(3);
+  const weather={q:'Dans le ciel : 🌩️ gros nuages noirs et 💨 vent fort. Que va-t-il probablement se passer ?',sp:'Dans le ciel, il y a de gros nuages noirs et un vent fort. Que va-t-il probablement se passer ?',seq:['🌩️','💨'],ans:'☔',opts:['☔','🏖️','⛄'],why:'les nuages noirs et le vent annoncent souvent de la pluie. Une IA météo compare avec des millions de jours passés, puis donne une probabilité, pas une certitude !'};
+  const youngItems=[
+    {q:'Observe le motif. Que vient ensuite ?',seq:['🔴','🔵','🔴','🔵','🔴'],ans:'🔵',opts:['🔵','🔴','🟢'],why:'le motif se répète : rouge, bleu, rouge, bleu…'},
+    {q:'Observe le motif. Que vient ensuite ?',seq:['🐱','🐱','🐶','🐱','🐱'],ans:'🐶',opts:['🐶','🐱','🐭'],why:'le groupe « chat, chat, chien » se répète.'},
+    {q:'Observe le motif. Que vient ensuite ?',seq:['⭐','⭐','🌙','⭐','⭐','🌙','⭐','⭐'],ans:'🌙',opts:['🌙','⭐','☀️'],why:'après deux étoiles, il y a toujours une lune.'},
+    weather,
+    {q:'Lundi 🍎, mardi 🍌, mercredi 🍎, jeudi 🍌… et vendredi ?',seq:['🍎','🍌','🍎','🍌'],ans:'🍎',opts:['🍎','🍌','🍇'],why:'l’IA aussi repère les habitudes : une pomme un jour sur deux.'}];
+  const olderItems=[
+    {q:'Quel nombre vient ensuite ?',seq:['2','4','6','8'],ans:'10',opts:['9','10','12'],why:'on ajoute 2 à chaque fois.'},
+    {q:'Quel nombre vient ensuite ?',seq:['1','2','4','8'],ans:'16',opts:['12','14','16'],why:'on double à chaque fois : 8 × 2 = 16.'},
+    {q:'Observe le motif. Que vient ensuite ?',seq:['🐱','🐱','🐶','🐱','🐱'],ans:'🐶',opts:['🐶','🐱','🐭'],why:'le groupe « chat, chat, chien » se répète.'},
+    weather,
+    {q:'Quel nombre vient ensuite ?',seq:['1','1','2','3','5'],ans:'8',opts:['7','8','9'],why:'chaque nombre est la somme des deux précédents : 3 + 5 = 8 (c’est la suite de Fibonacci !).'},
+    {q:'Observe le motif. Que vient ensuite ?',seq:['🍎','🍌','🍌','🍎','🍌','🍌','🍎','🍌'],ans:'🍌',opts:['🍌','🍎','🍇'],why:'le groupe « pomme, banane, banane » se répète : il manque la dernière banane.'}];
+  const items=young()?youngItems:olderItems,n=items.length;G.total=n;
+  const intro='L’IA cherche des motifs dans les données pour deviner la suite. À toi de l’imiter !';
+  say(intro,'happy');
+  (function step(k){
+    if(k>=n)return win(3);
+    setProg(k,n);const it=items[k];$('#fb').innerHTML='';
+    const opts=shuffle(it.opts);
+    $('#stage').innerHTML=`<div class="card prompt"><p><b>${it.q}</b></p><div class="seq" aria-label="Suite : ${it.seq.join(' ')} puis ?">${it.seq.map(x=>`<span>${x}</span>`).join('')}<span class="q">?</span></div></div>
+      <div class="choices">${opts.map(o=>`<button class="choice" data-v="${o}"><span class="em">${o}</span></button>`).join('')}</div>`;
+    ask(it.sp?`${it.sp} Les choix : ${opts.join(', ')}.`:`${it.q} La suite est : ${it.seq.join(', ')}, puis un point d’interrogation. Les choix : ${opts.join(', ')}.`,k===0?intro+' ':'');
+    bindChoices(b=>b.dataset.v===it.ans,()=>`La réponse est ${it.ans} : ${it.why}`,()=>step(k+1));
+  })(0);
+}
+
+/* ---------- Monde 5 : l’histoire ---------- */
+function g5(){
+  frame(4);
+  const ev=[
+    {y:1950,e:'💬',s:'Le jeu de Turing',f:'Alan Turing se demande si une machine peut penser et imagine un jeu de conversation (le « test de Turing »).',j:1},
+    {y:1956,e:'🎓',s:'Le mot « IA » apparaît',f:'Des chercheurs se réunissent à Dartmouth (États-Unis) et utilisent pour la première fois le nom « intelligence artificielle ».',j:1},
+    {y:1966,e:'🗨️',s:'ELIZA',f:'ELIZA, l’un des tout premiers programmes de conversation, répond avec des règles simples.',j:0},
+    {y:1997,e:'♟️',s:'Deep Blue',f:'L’ordinateur Deep Blue bat le champion du monde d’échecs Garry Kasparov.',j:1},
+    {y:2012,e:'👁️',s:'Le deep learning',f:'Une IA devient très forte pour reconnaître des objets dans des images grâce au deep learning.',j:0},
+    {y:2016,e:'⚫',s:'AlphaGo',f:'AlphaGo bat un grand champion du jeu de go, Lee Sedol : un jeu très difficile pour les machines.',j:1},
+    {y:2022,e:'✨',s:'L’IA qui crée',f:'Des IA qui écrivent et dessinent deviennent accessibles à tout le monde.',j:1}];
+  const list=young()?ev.filter(e=>e.j):ev,sorted=[...list].sort((a,b)=>a.y-b.y),n=list.length;G.total=n;
+  let hand=shuffle(list),placed=[];
+  say('Touche la carte la plus ANCIENNE, puis la suivante, et ainsi de suite !','think');
+  function render(){
+    setProg(placed.length,n);
+    $('#stage').innerHTML=`${placed.length?`<ol class="tl" aria-label="Frise chronologique">${placed.map(e=>`<li><b class="y">${e.y}</b> <span aria-hidden="true">${e.e}</span> ${e.f}</li>`).join('')}</ol>`:''}
+      <div class="card prompt"><p style="margin:0;padding-right:50px"><b>${placed.length?'Et ensuite, quelle est la carte la plus ancienne ?':'Quelle est la carte la plus ancienne ?'}</b></p></div>
+      <div class="choices">${hand.map(e=>`<button class="choice" data-y="${e.y}"><span class="em">${e.e}</span><b>${e.y}</b><small>${e.s}</small></button>`).join('')}</div>`;
+    ask(`${placed.length?'Et ensuite, quelle':'Quelle'} est la carte la plus ancienne ? Les cartes : ${hand.map(e=>`${e.y}, ${e.s}`).join(' ; ')}.`,'',!placed.length);
+    document.querySelectorAll('#stage .choice').forEach(b=>b.onclick=()=>{
+      const y=+b.dataset.y,target=sorted[placed.length];
+      if(y===target.y){
+        sfx.ok();burst(24);placed.push(target);hand=hand.filter(h=>h.y!==y);
+        if(!hand.length){setProg(n,n);render();return wait(900,()=>win(4))}
+        render();say(target.f,'wow');
+      }else{
+        G.mist++;sfx.no();b.classList.add('shake');say('Pas encore ! Il y a une carte encore plus ancienne. Regarde bien les dates.','oops');
+        setTimeout(()=>b.classList.remove('shake'),450);
+      }});
+  }
+  render();
+}
+
+/* ---------- Monde 6 : créer ---------- */
+function g6(){
+  frame(5);
+  const O={
+    who:['Qui ?',[['🐉','un dragon'],['🤖','un robot'],['🦊','un renard'],['🐙','un poulpe']]],
+    where:['Où ?',[['🏰','dans un château'],['🌋','sur un volcan'],['🌊','au fond de l’océan'],['🌕','sur la Lune']]],
+    what:['Que fait-il ?',[['🎂','prépare un gâteau géant'],['⚽','joue au foot'],['🎸','donne un concert'],['🔬','invente une machine folle']]],
+    style:['Quel style ?',[['😂','drôle'],['🌙','doux'],['🕵️','mystérieux']]]};
+  const END={
+    'drôle':['Soudain, un pigeon en costume arrive et tout le monde éclate de rire !','Un énorme hoquet fait trembler le décor. Hic !','Personne ne comprend ce qui se passe, mais tout le monde se met à danser.'],
+    'doux':['Le soleil se couche doucement et tous restent là, heureux, à regarder les étoiles.','Un petit vent chantonne une berceuse et la nuit se remplit de lucioles.','Ils se sourient en silence : c’est le plus beau moment de la journée.'],
+    'mystérieux':['Mais personne ne sait qui a laissé une clé dorée sur le sol…','Dans l’ombre, une porte secrète vient de s’ouvrir toute seule.','Une voix murmure : « Le vrai secret commence maintenant… »']};
+  const keys=Object.keys(O),sel={};let versions=0,last=-1;const need=young()?2:3;
+  say('Bienvenue dans la machine à idées ! Choisis une idée dans chaque groupe, puis demande à PIX d’inventer une histoire.','happy');
+  $('#prog').innerHTML='';
+  $('#stage').innerHTML=`<div class="card">${keys.map(k=>`<fieldset class="sel-group"><legend>${O[k][0]}</legend><div class="choices">${O[k][1].map((o,i)=>`<button class="choice" data-k="${k}" data-i="${i}" aria-pressed="false"><span class="em">${o[0]}</span>${o[1]}</button>`).join('')}</div></fieldset>`).join('')}
+    <div class="btnrow"><button class="btn big" id="gen" disabled>✨ Demander à PIX</button></div></div><div id="out"></div>`;
+  document.querySelectorAll('.sel-group .choice').forEach(b=>b.onclick=()=>{
+    sfx.tap();const k=b.dataset.k;sel[k]=+b.dataset.i;if(S.voice)speak(O[k][1][sel[k]][1]);
+    document.querySelectorAll(`.choice[data-k="${k}"]`).forEach(x=>{const on=x===b;x.classList.toggle('sel',on);x.setAttribute('aria-pressed',on)});
+    $('#gen').disabled=keys.some(k=>sel[k]===undefined)});
+  $('#gen').onclick=make;
+  function make(){
+    const w=O.who[1][sel.who],wh=O.where[1][sel.where],t=O.what[1][sel.what],s=O.style[1][sel.style][1];
+    $('#gen').disabled=true;say('PIX réfléchit…','think');
+    $('#out').innerHTML=`<div class="card prompt dots" style="margin-top:16px" aria-label="PIX réfléchit"><span>💭</span><span>💭</span><span>💭</span></div>`;
+    wait(1100,()=>{
+      let k;do{k=Math.random()*3|0}while(k===last);last=k;versions++;
+      const story=`${cap(w[1])}, ${wh[1]}, ${t[1]}. ${END[s][k]}`;
+      $('#out').innerHTML=`<div class="card" style="margin-top:16px"><div class="bigemoji" style="font-size:3.4rem" aria-hidden="true">${w[0]} ${wh[0]} ${t[0]}</div>
+        <p class="story">${story}</p>
+        <div class="codebox">⌨️ Ton prompt : « ${w[1]} · ${wh[1]} · ${t[1]} · style ${s} »</div>
+        <div class="btnrow" style="margin-top:8px"><button class="btn alt" id="rd">🔊 Lire</button><button class="btn" id="again">🔁 Autre version</button></div>
+        ${versions>=need?`<div class="learn" style="--w:#2d9cff">🔎 Tu as donné <b>la même demande</b> et obtenu des histoires <b>différentes</b> ! Une IA générative assemble ce qu’elle a appris : elle peut varier, se tromper et copier des idées. À toi de choisir, d’améliorer et de vérifier.</div><div class="btnrow"><button class="btn big" id="fin">J’ai compris ➜</button></div>`:`<p class="small" style="text-align:center">Génère encore ${need-versions} autre${need-versions>1?'s':''} version${need-versions>1?'s':''} pour comparer !</p>`}</div>`;
+      sfx.ok();burst(40);say('Voilà ! Ta demande s’appelle un prompt. Compare les versions !','cheer');
+      $('#gen').disabled=false;
+      $('#rd').onclick=()=>speak(story);$('#again').onclick=make;
+      cur=story;if(S.voice)speak('Voilà ! Ta demande s’appelle un prompt. '+story);
+      if($('#fin'))$('#fin').onclick=()=>win(5,1);
+      $('#out').scrollIntoView({block:'nearest',behavior:RM?'auto':'smooth'});
+    });
+  }
+}
+
+/* ---------- Monde 7 : humain + IA ---------- */
+function g7(){
+  frame(6);
+  const all=[
+    {e:'🌀',q:'Tu demandes à une IA : « Quelle est la capitale du Maroc ? » Elle répond « Casablanca » avec beaucoup d’assurance. Que fais-tu ?',
+      o:[{t:'Je la crois : une IA est toujours juste.',no:'Une IA peut se tromper tout en paraissant sûre d’elle.'},{t:'Je vérifie dans un atlas ou avec un adulte.',ok:1},{t:'Je recopie sans réfléchir.',no:'Recopier sans vérifier, c’est risqué !'}],
+      why:'La capitale du Maroc est Rabat. Une IA peut inventer une réponse fausse qui a l’air vraie : c’est une hallucination. Il faut vérifier.'},
+    {e:'🔒',q:'Un chatbot te demande ton adresse et le nom de ton école « pour mieux te connaître ». Que fais-tu ?',
+      o:[{t:'Je lui donne, il est gentil.',no:'Même s’il paraît gentil, tu ne sais pas où vont ces informations.'},{t:'Je ne donne rien et j’en parle à un adulte.',ok:1},{t:'Je donne seulement le nom de ma rue.',no:'Une partie de l’adresse reste une information personnelle.'}],
+      why:'Les informations personnelles (adresse, école, photos, mots de passe) se protègent. On n’en donne pas à une IA.'},
+    {e:'📝',q:'Tu dois faire un exposé sur les volcans. Comment utiliser l’IA intelligemment ?',
+      o:[{t:'Je lui demande de tout faire et je rends sans lire.',no:'Tu n’apprendrais rien, et le texte pourrait contenir des erreurs.'},{t:'Je l’utilise pour comprendre, je vérifie, puis j’écris avec mes mots.',ok:1},{t:'Je n’utilise aucune autre source.',no:'Mieux vaut comparer plusieurs sources.'}],
+      why:'L’IA peut t’aider à comprendre, mais c’est toi qui vérifies et qui réfléchis. Le dernier mot est le tien.'},
+    {e:'🦈',q:'Tu vois une photo incroyable : un requin dans une piscine d’école. Elle a peut-être été créée par une IA. Que fais-tu ?',
+      o:[{t:'Je la partage tout de suite à tout le monde.',no:'Partager une fausse image peut tromper beaucoup de gens.'},{t:'Je cherche d’où elle vient et j’en parle à un adulte.',ok:1},{t:'C’est une photo, donc c’est forcément vrai.',no:'Une IA peut fabriquer des images très réalistes.'}],
+      why:'Les IA peuvent créer de fausses images très crédibles. Avant de croire ou de partager, on vérifie la source.'},
+    {e:'⚖️',q:'Une IA a appris surtout avec des photos d’un seul type de personnes. Quel problème peut arriver ?',
+      o:[{t:'Elle reconnaîtra moins bien les autres personnes.',ok:1},{t:'Aucun, une IA est toujours juste.',no:'Une IA reflète les données qu’on lui a données.'},{t:'Elle va devenir plus rapide.',no:'Les données incomplètes ne rendent pas l’IA plus rapide.'}],
+      why:'Si les données ne sont pas variées, l’IA se trompe plus sur ce qu’elle a peu vu : c’est un biais.'},
+    {e:'🧸',q:'Un robot de compagnie te dit : « Je suis triste pour toi. » Qu’est-ce qui est vrai ?',
+      o:[{t:'Il ressent exactement comme un humain.',no:'Il n’a ni cœur ni émotions comme nous.'},{t:'Il imite l’empathie avec des mots, mais ne ressent pas comme un humain.',ok:1},{t:'Il ne peut rien dire du tout.',no:'Il peut produire des phrases, mais sans ressentir.'}],
+      why:'Une IA peut produire des phrases qui ressemblent à de l’empathie, mais elle ne ressent pas d’émotions. Les vrais amis, ce sont les humains !'}];
+  const items=young()?all.slice(0,4):all,n=items.length;G.total=n;
+  const intro='L’IA peut être une super aide, à condition de rester malin. Que ferais-tu dans ces situations ?';
+  say(intro,'happy');
+  (function step(k){
+    if(k>=n)return win(6);
+    setProg(k,n);const sc=items[k],opts=shuffle(sc.o);$('#fb').innerHTML='';
+    $('#stage').innerHTML=`<div class="card prompt"><div class="bigemoji" style="font-size:3.6rem" aria-hidden="true">${sc.e}</div><h2 style="font-size:1.25rem">${sc.q}</h2></div>
+      <div class="choices col">${opts.map((o,i)=>`<button class="choice wide" data-k="${i}"><span>${['🅰️','🅱️','🅲'][i]||'•'}</span><span>${o.t}</span></button>`).join('')}</div>`;
+    ask(`${sc.q} ${opts.map((o,i)=>`Réponse ${['A','B','C'][i]} : ${o.t}`).join(' ')}`,k===0?intro+' ':'');
+    bindChoices(b=>!!opts[+b.dataset.k].ok,(b,ok)=>ok?sc.why:`${opts[+b.dataset.k].no} ${sc.why}`,()=>step(k+1));
+  })(0);
+}
+
+/* ---------- Diplôme ---------- */
+function diploma(){
+  if(!worlds.every((_,i)=>done(i)))return showMap();
+  const date=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}),[ri,rn]=rank();
+  view(`<section class="game"><div class="noprint gbar"><button class="btn alt sm" onclick="showMap()">← Carte</button></div>
+    <article class="diploma"><div class="hero-pix">${pix('cheer',110)}</div><small>Super diplôme de</small><h1>Explorateur de l’IA</h1><p>décerné à</p>
+    <div class="dip-name">${esc(S.name||'Super explorateur')}</div>
+    <p>pour avoir terminé les 7 mondes, compris ce qu’est l’IA<br>et gardé son esprit critique.</p>
+    <div class="bigstars" aria-hidden="true"><span class="on">★</span><span class="on">★</span><span class="on">★</span></div>
+    <p><b>${totalStars()} / 21 étoiles</b> · ${ri} ${rn}<br>${date}</p><p style="font-size:1.4rem">🤖 PIX</p></article>
+    <div class="btnrow noprint"><button class="btn big" onclick="window.print()">🖨️ Imprimer mon diplôme</button><button class="btn alt" onclick="showMap()">🗺️ Retour à la carte</button></div></section>`);
+  sfx.win();burst(220);
+}
+
+window.addEventListener('pagehide',()=>{try{speechSynthesis.cancel()}catch(e){}});
+if(!skinOpen(skins.find(k=>k.id===S.skin)||skins[0])||!SK[S.skin])S.skin='base';
+renderTools();home();
+</script>
+</body>
+</html>
